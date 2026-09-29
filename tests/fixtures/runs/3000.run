@@ -1,0 +1,31 @@
+{
+  "start_time": 3000,
+  "build_id": "v0.101.0",
+  "ascension": 0,
+  "win": false,
+  "was_abandoned": true,
+  "killed_by_encounter": "NONE.NONE",
+  "players": [
+    {
+      "character": "CHARACTER.IRONCLAD",
+      "deck": [
+        {"id": "CARD.STRIKE_IRONCLAD"},
+        {"id": "CARD.DEFEND_IRONCLAD"}
+      ]
+    }
+  ],
+  "map_point_history": [
+    [
+      {
+        "map_point_type": "monster",
+        "player_stats": [
+          {
+            "card_choices": [
+              {"card": {"id": "CARD.ANGER"}, "was_picked": false}
+            ]
+          }
+        ]
+      }
+    ]
+  ]
+}

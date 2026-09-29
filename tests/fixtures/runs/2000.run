@@ -1,0 +1,32 @@
+{
+  "start_time": 2000,
+  "build_id": "v0.100.0",
+  "ascension": 2,
+  "win": false,
+  "was_abandoned": false,
+  "killed_by_encounter": "ENCOUNTER.THE_INSATIABLE_BOSS",
+  "players": [
+    {
+      "character": "CHARACTER.CYCLOPS",
+      "deck": [
+        {"id": "CARD.BATTLE_TRANCE"},
+        {"id": "CARD.GUARD"}
+      ]
+    }
+  ],
+  "map_point_history": [
+    [
+      {
+        "map_point_type": "monster",
+        "player_stats": [
+          {
+            "card_choices": [
+              {"card": {"id": "CARD.HEAVY_BLOW"}, "was_picked": false},
+              {"card": {"id": "CARD.BATTLE_TRANCE"}, "was_picked": true}
+            ]
+          }
+        ]
+      }
+    ]
+  ]
+}

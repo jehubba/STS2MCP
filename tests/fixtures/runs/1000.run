@@ -1,0 +1,34 @@
+{
+  "start_time": 1000,
+  "build_id": "v0.100.0",
+  "ascension": 2,
+  "win": true,
+  "was_abandoned": false,
+  "killed_by_encounter": "NONE.NONE",
+  "players": [
+    {
+      "character": "CHARACTER.CYCLOPS",
+      "deck": [
+        {"id": "CARD.HEAVY_BLOW"},
+        {"id": "CARD.GUARD"}
+      ]
+    }
+  ],
+  "map_point_history": [
+    [
+      {
+        "map_point_type": "monster",
+        "player_stats": [
+          {
+            "card_choices": [
+              {"card": {"id": "CARD.HEAVY_BLOW"}, "was_picked": true},
+              {"card": {"id": "CARD.BATTLE_TRANCE"}, "was_picked": false},
+              {"card": null, "was_picked": false},
+              {"card": {}, "was_picked": false}
+            ]
+          }
+        ]
+      }
+    ]
+  ]
+}
