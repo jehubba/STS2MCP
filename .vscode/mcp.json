@@ -1,0 +1,30 @@
+{
+  "servers": {
+    "sts2-host": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}/mcp",
+        "python",
+        "server.py",
+        "--port",
+        "15526"
+      ]
+    },
+    "sts2-client": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}/mcp",
+        "python",
+        "server.py",
+        "--port",
+        "15527"
+      ]
+    }
+  }
+}

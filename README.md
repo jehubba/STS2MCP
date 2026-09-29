@@ -21,7 +21,7 @@ Singleplayer and multiplayer (co-op) supported, plus full menu and lobby control
 Grab the [latest release](https://github.com/Gennadiyev/STS2MCP/releases/latest) and follow the instructions:
 
 1. Copy `STS2_MCP.dll` and `STS2_MCP.json` to `<game_install>/mods/`
-2. Launch the game and enable mods in settings (a consent dialog appears on first launch)
+2. Launch the game through Steam and enable mods in settings (a consent dialog appears on first launch). Do not run the game executable directly; Steamworks initialization requires a Steam launch.
 3. The mod starts an HTTP server on `localhost:15526` automatically
 
 > [!note]
