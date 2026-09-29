@@ -1,8 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STS2_MCP", "STS2_MCP.csproj", "{B8331C9D-0B62-BBCE-995A-37007C009379}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STS2_MCP.Tests", "STS2_MCP.Tests\STS2_MCP.Tests.csproj", "{B7F8BEFA-4E67-41F9-A019-B19279032D08}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,6 +16,10 @@ Global
 		{B8331C9D-0B62-BBCE-995A-37007C009379}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8331C9D-0B62-BBCE-995A-37007C009379}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8331C9D-0B62-BBCE-995A-37007C009379}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7F8BEFA-4E67-41F9-A019-B19279032D08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7F8BEFA-4E67-41F9-A019-B19279032D08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7F8BEFA-4E67-41F9-A019-B19279032D08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7F8BEFA-4E67-41F9-A019-B19279032D08}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

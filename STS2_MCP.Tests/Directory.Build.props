@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>..\obj\STS2_MCP.Tests\</BaseIntermediateOutputPath>
+    <BaseOutputPath>..\bin\STS2_MCP.Tests\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

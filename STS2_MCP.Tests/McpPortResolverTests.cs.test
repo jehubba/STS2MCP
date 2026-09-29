@@ -1,0 +1,67 @@
+using System.Reflection;
+using Xunit;
+
+namespace STS2_MCP.Tests;
+
+public sealed class McpPortResolverTests
+{
+    [Fact]
+    public void CommandLineOverrideTakesPrecedenceOverConfiguredPort()
+    {
+        int port = Resolve(["--sts2-mcp-port=24001"], configuredPort: 16000);
+
+        Assert.Equal(24001, port);
+    }
+
+    [Fact]
+    public void ValidConfiguredPortIsUsedWithoutOverride()
+    {
+        int port = Resolve([], configuredPort: 16000);
+
+        Assert.Equal(16000, port);
+    }
+
+    [Theory]
+    [InlineData("--sts2-mcp-port=not-a-port")]
+    [InlineData("--sts2-mcp-port=0")]
+    [InlineData("--sts2-mcp-port=65536")]
+    public void InvalidOverrideFallsBackToValidConfiguredPort(string argument)
+    {
+        int port = Resolve([argument], configuredPort: 16000);
+
+        Assert.Equal(16000, port);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(65536)]
+    public void InvalidConfigFallsBackToDefaultPort(int? configuredPort)
+    {
+        int port = Resolve([], configuredPort);
+
+        Assert.Equal(McpMod.DefaultPort, port);
+    }
+
+    private static int Resolve(IReadOnlyList<string> arguments, int? configuredPort)
+    {
+        const string resolverTypeName = "STS2_MCP.McpPortResolver";
+        Type? resolverType = typeof(McpMod).Assembly.GetType(resolverTypeName);
+        Assert.True(
+            resolverType is not null,
+            $"Missing production port resolver '{resolverTypeName}'. Add the pure resolver boundary before wiring it to Godot command-line state and STS2_MCP.conf.");
+
+        MethodInfo? resolveMethod = resolverType.GetMethod(
+            "Resolve",
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            types: [typeof(IReadOnlyList<string>), typeof(int?)],
+            modifiers: null);
+        Assert.True(
+            resolveMethod is not null,
+            $"Missing production method '{resolverTypeName}.Resolve(IReadOnlyList<string>, int?)'.");
+
+        object? result = resolveMethod.Invoke(null, [arguments, configuredPort]);
+        return Assert.IsType<int>(result);
+    }
+}
