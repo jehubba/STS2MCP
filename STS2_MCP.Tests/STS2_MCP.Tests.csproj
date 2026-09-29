@@ -42,5 +42,6 @@
 
   <ItemGroup>
     <Compile Include="McpPortResolverTests.cs.test" />
+    <Compile Include="CustomRunPr129Tests.cs.test" />
   </ItemGroup>
 </Project>

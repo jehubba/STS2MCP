@@ -1,0 +1,143 @@
+using System.Reflection;
+using System.Text.Json;
+using Godot;
+using Xunit;
+
+namespace STS2_MCP.Tests;
+
+public sealed class CustomRunPr129Tests
+{
+    [Fact]
+    public void CustomRunScreenIsDiscoveredBeforePlainCharacterSelect()
+    {
+        string source = ReadProductionSource("McpMod.StateBuilder.cs");
+
+        int customRunDiscovery = source.IndexOf("FindFirst<NCustomRunScreen>(tree.Root)", StringComparison.Ordinal);
+        int characterSelectDiscovery = source.IndexOf("FindFirst<NCharacterSelectScreen>(tree.Root)", StringComparison.Ordinal);
+
+        Assert.True(customRunDiscovery >= 0, "Menu state discovery must recognize NCustomRunScreen.");
+        Assert.True(
+            customRunDiscovery < characterSelectDiscovery,
+            "NCustomRunScreen must be checked before NCharacterSelectScreen because custom-run setup contains character-select controls.");
+    }
+
+    [Theory]
+    [InlineData("AddStartRunScreenState")]
+    [InlineData("ExecuteStartRunScreenOption")]
+    public void CharacterSelectAndCustomRunUseSharedNodeBasedRouting(string methodName)
+    {
+        MethodInfo? method = typeof(McpMod).GetMethod(
+            methodName,
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.True(method is not null, $"PR 129 requires the shared start-run method McpMod.{methodName}.");
+        Assert.Contains(method!.GetParameters(), parameter => parameter.ParameterType == typeof(Node));
+    }
+
+    [Fact]
+    public void CustomRunStatePublishesSeedModifiersSelectionAndAscension()
+    {
+        string source = ReadProductionSource("McpMod.StateBuilder.cs");
+
+        Assert.Contains("result[\"menu_screen\"] = \"custom_run\"", source, StringComparison.Ordinal);
+        Assert.Contains("result[\"seed\"]", source, StringComparison.Ordinal);
+        Assert.Contains("result[\"modifiers\"]", source, StringComparison.Ordinal);
+        Assert.Contains("result[\"selected\"]", source, StringComparison.Ordinal);
+        Assert.Contains("result[\"ascension\"]", source, StringComparison.Ordinal);
+        Assert.Contains("[\"character\"] = GetSelectedCharacterId(buttons)", source, StringComparison.Ordinal);
+        Assert.Contains("selected[\"modifiers\"] = selectedModifiers", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModifierKeysAreUniqueAndAdvertisedKeysDriveToggleDispatch()
+    {
+        string helpers = ReadProductionSource("McpMod.Helpers.cs");
+        string actions = ReadProductionSource("McpMod.Actions.cs");
+        string stateBuilder = ReadProductionSource("McpMod.StateBuilder.cs");
+
+        Assert.Contains("new HashSet<string>(StringComparer.OrdinalIgnoreCase)", helpers, StringComparison.Ordinal);
+        Assert.Contains("$\"{id}_{characterId}\"", helpers, StringComparison.Ordinal);
+        Assert.Contains("while (!usedKeys.Add($\"{key}_{suffix}\"))", helpers, StringComparison.Ordinal);
+        Assert.Contains("ModifierOptionPrefix + entry.Key", stateBuilder, StringComparison.Ordinal);
+        Assert.Contains("TryToggleRunModifier(screen, option)", actions, StringComparison.Ordinal);
+        Assert.Contains("string.Equals(e.Key, token", actions, StringComparison.Ordinal);
+        Assert.Contains("string.Equals(e.Id, token", actions, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AscensionActionsAreDispatchedOnlyThroughVisibleEnabledArrows()
+    {
+        string actions = ReadProductionSource("McpMod.Actions.cs");
+        string stateBuilder = ReadProductionSource("McpMod.StateBuilder.cs");
+
+        Assert.Contains("\"ascension_up\"", actions, StringComparison.Ordinal);
+        Assert.Contains("\"ascension_down\"", actions, StringComparison.Ordinal);
+        Assert.Contains("ExecuteAscensionChange(screen, up: true)", actions, StringComparison.Ordinal);
+        Assert.Contains("ExecuteAscensionChange(screen, up: false)", actions, StringComparison.Ordinal);
+        Assert.Contains("!IsControlVisibleOrActionable(arrow)", actions, StringComparison.Ordinal);
+        Assert.Contains("arrow.ForceClick()", actions, StringComparison.Ordinal);
+        Assert.Contains("IsNodeVisible(arrow)", stateBuilder, StringComparison.Ordinal);
+        Assert.Contains("[\"enabled\"] = arrow.IsEnabled", stateBuilder, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CustomRunConfirmAppliesTrimmedSeedBeforeClickingConfirm()
+    {
+        string actions = ReadProductionSource("McpMod.Actions.cs");
+
+        int trimSeed = actions.IndexOf("seed = seed.Trim()", StringComparison.Ordinal);
+        int setSeed = actions.IndexOf("lobby.SetSeed(seed)", StringComparison.Ordinal);
+        int resolveConfirm = actions.IndexOf("GetInstanceFieldValue(screen, confirmField)", StringComparison.Ordinal);
+        int clickConfirm = actions.IndexOf("confirmClickable.ForceClick()", StringComparison.Ordinal);
+
+        Assert.True(trimSeed >= 0, "Custom-run confirm must normalize the requested seed.");
+        Assert.True(setSeed > trimSeed, "The normalized seed must be applied to the start-run lobby.");
+        Assert.True(resolveConfirm > setSeed, "Seed application must complete before resolving the confirm control.");
+        Assert.True(clickConfirm > resolveConfirm, "The run must start only after seed application succeeds and confirm is enabled.");
+        Assert.Contains("customRun,\n            \"_confirmButton\"", actions.Replace("\r\n", "\n"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ManifestVersionDrivesBuildAndRuntimeVersion()
+    {
+        string manifestPath = Path.Combine(RepositoryRoot, "mod_manifest.json");
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        string expectedVersion = manifest.RootElement.GetProperty("version").GetString()!;
+        string project = ReadProductionSource("STS2_MCP.csproj");
+        string runtimeSource = ReadProductionSource("McpMod.cs");
+        string informationalVersion = typeof(McpMod).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion.Split('+')[0];
+        string runtimeVersion = McpMod.Version;
+
+        Assert.Contains("ReadAllText", project, StringComparison.Ordinal);
+        Assert.Contains("mod_manifest.json", project, StringComparison.Ordinal);
+        Assert.Contains("<Version>$(ModVersion)</Version>", project, StringComparison.Ordinal);
+        Assert.Contains("Version = ResolveVersion()", runtimeSource, StringComparison.Ordinal);
+        Assert.Equal(expectedVersion, informationalVersion);
+        Assert.Equal(expectedVersion, runtimeVersion);
+    }
+
+    private static string ReadProductionSource(string relativePath) =>
+        File.ReadAllText(Path.Combine(RepositoryRoot, relativePath));
+
+    private static string RepositoryRoot
+    {
+        get
+        {
+            DirectoryInfo? directory = new(AppContext.BaseDirectory);
+            while (directory is not null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "STS2_MCP.csproj")) &&
+                    File.Exists(Path.Combine(directory.FullName, "mod_manifest.json")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate the STS2_MCP repository root from the test output directory.");
+        }
+    }
+}
