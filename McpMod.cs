@@ -19,7 +19,26 @@ namespace STS2_MCP;
 [ModInitializer("Initialize")]
 public static partial class McpMod
 {
-    public const string Version = "0.4.0";
+    // Sourced from the assembly version, which the build stamps from
+    // mod_manifest.json (see STS2_MCP.csproj). mod_manifest.json is the single
+    // place to bump the version.
+    public static readonly string Version = ResolveVersion();
+
+    private static string ResolveVersion()
+    {
+        var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)
+            System.Attribute.GetCustomAttribute(
+                typeof(McpMod).Assembly,
+                typeof(System.Reflection.AssemblyInformationalVersionAttribute));
+        string? info = attr?.InformationalVersion;
+        if (!string.IsNullOrEmpty(info))
+        {
+            int plus = info.IndexOf('+');
+            return plus >= 0 ? info.Substring(0, plus) : info;
+        }
+        return typeof(McpMod).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    }
+
     public const int DefaultPort = 15526;
     private const string ConfigFileName = "STS2_MCP.conf";
 
@@ -36,11 +55,14 @@ public static partial class McpMod
 
     private static int LoadPort()
     {
+        int ResolvePort(int? configuredPort) =>
+            McpPortResolver.Resolve(Godot.OS.GetCmdlineArgs(), configuredPort);
+
         try
         {
             string? modDir = Path.GetDirectoryName(
                 System.Reflection.Assembly.GetExecutingAssembly().Location);
-            if (modDir == null) return DefaultPort;
+            if (modDir == null) return ResolvePort(null);
 
             string configPath = Path.Combine(modDir, ConfigFileName);
             if (!File.Exists(configPath))
@@ -56,7 +78,7 @@ public static partial class McpMod
                 {
                     GD.Print($"[STS2 MCP] No config found at {configPath}; using default port {DefaultPort}");
                 }
-                return DefaultPort;
+                return ResolvePort(DefaultPort);
             }
 
             string content = File.ReadAllText(configPath);
@@ -65,16 +87,16 @@ public static partial class McpMod
                 && portElem.TryGetInt32(out int port)
                 && port is > 0 and <= 65535)
             {
-                return port;
+                return ResolvePort(port);
             }
 
             GD.PrintErr($"[STS2 MCP] Invalid or missing 'port' in {configPath}, using default {DefaultPort}");
-            return DefaultPort;
+            return ResolvePort(null);
         }
         catch (Exception ex)
         {
             GD.PrintErr($"[STS2 MCP] Failed to load config: {ex.Message}, using default port {DefaultPort}");
-            return DefaultPort;
+            return ResolvePort(null);
         }
     }
 

@@ -7,10 +7,15 @@ as MCP tools for Claude Desktop / Claude Code.
 import argparse
 import asyncio
 import json
+from pathlib import Path
 import sys
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+
+_server_dir = str(Path(__file__).resolve().parent)
+if _server_dir not in sys.path:
+    sys.path.insert(0, _server_dir)
 
 mcp = FastMCP("sts2")
 
@@ -182,8 +187,9 @@ async def menu_select(option: str, seed: str | None = None) -> str:
     Use with state_type "menu" or "game_over". Covers main-menu navigation,
     singleplayer / multiplayer submenus, multiplayer host & join lobbies,
     multiplayer load lobby (resume saved co-op run), character select for SP
-    and MP (with `unready` once readied in MP), profile switching, timeline
-    controls, tutorial prompts, blocking popups, and game-over main-menu return.
+    and MP (with `unready` once readied in MP), custom-run setup, profile
+    switching, timeline controls, tutorial prompts, blocking popups, and
+    game-over main-menu return.
 
     Multiplayer flow tips:
       - On menu_screen "multiplayer_join", use refresh / back / join_<index> /
@@ -194,11 +200,25 @@ async def menu_select(option: str, seed: str | None = None) -> str:
         `lobby` block with the roster, ready states, and ascension; "unready"
         becomes available after you confirm/embark.
 
+    Custom mode ("custom_run"): pick a character, then confirm/embark. Unlike
+    standard singleplayer, a seed IS supported here. Toggle run modifiers with
+    the "modifier_<key>" option names the state advertises (the bare key, or the
+    raw modifier id when unambiguous, also work — the per-character card
+    modifiers all share the id CHARACTER_CARDS and must be addressed by key).
+    Modifiers can be mutually exclusive, so the response returns the resulting
+    list of ticked modifier keys rather than only the one toggled.
+
+    Ascension ("character_select" and "custom_run"): "ascension_up" /
+    "ascension_down" move the level by one and are advertised only while that
+    direction is available; the state's `ascension` block carries level and max.
+    The `selected` block reflects the current character and enabled modifier ids.
+
     Args:
         option: Option ID from the current menu state's options list. If an
             option is listed under blocked_options, selecting it returns the
             API's manual-action response instead of forcing UI entry.
-        seed: Optional seed for supported embark flows. Standard mode rejects seeds.
+        seed: Optional seed for supported embark flows (custom run, multiplayer
+            lobbies, daily). Standard mode rejects seeds.
     """
     body: dict = {"action": "menu_select", "option": option}
     if seed is not None:
@@ -234,6 +254,70 @@ async def get_compendium() -> str:
     """
     try:
         return await _compendium_get()
+    except Exception as e:
+        return _handle_error(e)
+
+
+@mcp.tool()
+async def get_playtest_metrics(
+    ledger_path: str | None = None,
+    character: str | None = None,
+    game_build: str | None = None,
+    mod_version: str | None = None,
+    ascension: int | None = None,
+    start_time_min: int | None = None,
+    start_time_max: int | None = None,
+    mcp_version: str | None = None,
+    report_path: str | None = None,
+    development_test: bool = False,
+) -> str:
+    """Ingest run history and report longitudinal playtest metrics.
+
+    Primary rates exclude abandoned and explicitly marked development/test runs.
+    Results include version cohorts, sample sizes, and Wilson 95% intervals.
+    Existing ledger records are immutable, so metadata applies only to newly
+    discovered runs.
+    """
+    try:
+        from telemetry import aggregate_metrics, ingest_runs
+
+        compendium = json.loads(await _compendium_get())
+        profile_id = int(compendium["profile_id"])
+        run_history = compendium["sections"]["run_history"]
+        history_path = Path(run_history["history_path"])
+        entries = run_history.get("entries") or []
+        run_id = entries[0].get("run_id", "") if entries else ""
+        save_scope = run_id.split(":", 1)[0] if ":" in run_id else (
+            "modded" if "modded" in history_path.parts else "vanilla"
+        )
+        target_ledger = (
+            Path(ledger_path)
+            if ledger_path
+            else history_path.parent / "sts2-mcp-playtest-telemetry.jsonl"
+        )
+        ingest_runs(
+            history_path=history_path,
+            ledger_path=target_ledger,
+            profile_id=profile_id,
+            save_scope=save_scope,
+            metadata={
+                "mod_version": mod_version or "unknown",
+                "mcp_version": mcp_version or "unknown",
+                "report_path": report_path,
+                "development_test": development_test,
+            },
+        )
+        metrics = aggregate_metrics(
+            target_ledger,
+            character=character,
+            game_build=game_build,
+            mod_version=mod_version,
+            ascension=ascension,
+            start_time_min=start_time_min,
+            start_time_max=start_time_max,
+        )
+        metrics["ledger_path"] = str(target_ledger)
+        return json.dumps(metrics)
     except Exception as e:
         return _handle_error(e)
 
