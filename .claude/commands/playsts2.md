@@ -3,7 +3,8 @@ Play Slay the Spire 2 using the MCP tools (`mcp__sts2__*`). Your goal is to play
 ## Setup
 1. Read `AGENTS.md` for general strategy and MCP calling tips.
 2. Read `GUIDE.md` for hero-specific strategies. If the current hero isn't covered, adapt and add notes after boss fights.
-3. Call `get_game_state(format="markdown")` to see the current state and begin playing.
+3. Confirm the game was launched through Steam. On Windows, use Steam or `steam://rungameid/2868840`; never launch `SlayTheSpire2.exe` directly because Steamworks initialization will fail.
+4. Call `get_game_state(format="markdown")` to verify the MCP endpoint, see the current state, and begin playing.
 
 ## Gameplay Loop
 - **Map**: Evaluate paths. Prefer elites when healthy, rest sites before bosses.
