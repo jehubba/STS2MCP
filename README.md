@@ -1,3 +1,10 @@
+> [!NOTE]
+> This repository is [jehubba's fork](https://github.com/jehubba/STS2MCP) of the canonical [Gennadiyev/STS2MCP](https://github.com/Gennadiyev/STS2MCP) project.
+>
+> It carries functional changes intended for potential upstream contribution. Use the upstream repository for official releases and project support.
+>
+> Research, gameplay guides, and playtest materials are available on the optional [`docs/research-playtest-bootstrap`](https://github.com/jehubba/STS2MCP/tree/docs/research-playtest-bootstrap) branch.
+
 <p align="center">
   <img src="docs/teaser.png" alt="STS2 MCP" width="90%" />
 </p>
