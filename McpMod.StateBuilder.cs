@@ -929,6 +929,27 @@ public static partial class McpMod
         return null;
     }
 
+    private static int? GetStartRunLobbyMaxPlayers(StartRunLobby lobby)
+    {
+        // The beta removed MaxPlayers; occupancy is not a substitute for capacity.
+        object? capacity;
+        try
+        {
+            capacity = GetInstanceFieldValue(lobby, "_maxPlayers");
+        }
+        catch (MemberAccessException ex)
+        {
+            GD.PrintErr($"[STS2 MCP] Cannot read lobby _maxPlayers: {ex.Message}; reporting max_players as null.");
+            return null;
+        }
+
+        if (capacity is int maxPlayers && maxPlayers > 0)
+            return maxPlayers;
+
+        GD.PrintErr("[STS2 MCP] Lobby _maxPlayers is missing or invalid; reporting max_players as null.");
+        return null;
+    }
+
     private static Dictionary<string, object?> BuildStartRunLobbyState(StartRunLobby lobby)
     {
         var lobbyState = new Dictionary<string, object?>
@@ -941,7 +962,7 @@ public static partial class McpMod
                 _ => lobby.NetService.Type.ToString().ToLowerInvariant()
             },
             ["game_mode"] = lobby.GameMode.ToString().ToLowerInvariant(),
-            ["max_players"] = lobby.MaxPlayers,
+            ["max_players"] = GetStartRunLobbyMaxPlayers(lobby),
             ["ascension"] = lobby.Ascension,
             ["max_ascension"] = lobby.MaxAscension,
             ["all_ready"] = lobby.Players.Count > 0 && lobby.Players.All(p => p.isReady),
@@ -1131,22 +1152,10 @@ public static partial class McpMod
             catch { }
 
             info["expected_player_count"] = lobby.Run?.Players?.Count ?? 0;
-            info["connected_player_count"] = lobby.ConnectedPlayerIds?.Count ?? 0;
+            info["connected_player_count"] = lobby.PlayerCount;
 
-            // LoadRunLobby no longer exposes IsAboutToBeginGame in the public game API,
-            // so derive the same readiness summary from connected players and ready flags.
-            // Without these fields, FormatLobbyMarkdown printed "All ready: false" unconditionally for load lobbies.
-            bool aboutToBegin = false;
-            try
-            {
-                var runPlayers = lobby.Run?.Players;
-                var connectedPlayerIds = lobby.ConnectedPlayerIds;
-                aboutToBegin = runPlayers != null
-                    && connectedPlayerIds != null
-                    && runPlayers.Count > 0
-                    && runPlayers.All(player => connectedPlayerIds.Contains(player.NetId) && lobby.IsPlayerReady(player.NetId));
-            }
-            catch { }
+            // Use the game's quorum and pending-connection rules, not the saved roster.
+            bool aboutToBegin = lobby.IsAboutToBeginGame();
             info["all_ready"] = aboutToBegin;
             info["is_about_to_begin"] = aboutToBegin;
 
@@ -1158,7 +1167,7 @@ public static partial class McpMod
                 {
                     foreach (var sp in lobby.Run.Players)
                     {
-                        bool isConnected = lobby.ConnectedPlayerIds?.Contains(sp.NetId) ?? false;
+                        bool isConnected = lobby.PlayerIds.Contains(sp.NetId);
                         bool isReady = false;
                         try { isReady = lobby.IsPlayerReady(sp.NetId); } catch { }
                         players.Add(new Dictionary<string, object?>

@@ -21,6 +21,19 @@ Singleplayer and multiplayer (co-op) supported, plus full menu and lobby control
 > [!caution]
 > Multiplayer support is in **beta** — expect bugs. Any multiplayer issues encountered with this mod installed are very likely caused by the mod, not the game. Please disable the mod and verify the issue persists before reporting bugs to the STS2 developers.
 
+### Current beta lobby compatibility
+
+The lobby state integration adapts [upstream PR #132](https://github.com/Gennadiyev/STS2MCP/pull/132)
+to the newer game APIs: load lobbies use `PlayerCount`, `PlayerIds`, and the game's
+`IsAboutToBeginGame()` readiness rules. Start-lobby `max_players` reads the private
+`_maxPlayers` capacity field; if unavailable or invalid, it is `null` with an error
+logged, never the current player count.
+
+This is a lobby-only update, not full compatibility certification. Steam public-beta
+build `26660232` also changes shop APIs, which remain separate build blockers.
+Lobby regression validation used a temporary source copy with incompatible shop
+calls replaced by throwing stubs; it did not validate shop behavior or live game UI routing.
+
 ## For Players
 
 ### 1. Install the Mod
